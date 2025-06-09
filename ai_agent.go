@@ -49,8 +49,14 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 	// Log user message
 	a.logToFile("USER", userMessage, "")
 	
+	// Enhance user message with current presentation context
+	enhancedMessage := userMessage
+	if a.app != nil && a.app.currentPresentationPath != "" {
+		enhancedMessage = fmt.Sprintf("Current presentation loaded: %s\n\nUser request: %s", a.app.currentPresentationPath, userMessage)
+	}
+	
 	// Add user message to conversation
-	userMsgParam := anthropic.NewUserMessage(anthropic.NewTextBlock(userMessage))
+	userMsgParam := anthropic.NewUserMessage(anthropic.NewTextBlock(enhancedMessage))
 	a.conversation = append(a.conversation, userMsgParam)
 
 	// Run inference

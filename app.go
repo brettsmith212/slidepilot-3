@@ -62,10 +62,10 @@ func (a *App) GetSlides() ([]string, error) {
 
 	// Check if slides directory exists
 	if _, err := os.Stat(slidesDir); os.IsNotExist(err) {
-		return []string{}, nil
+		return make([]string, 0), nil
 	}
 
-	var slides []string
+	slides := make([]string, 0)
 	err := filepath.WalkDir(slidesDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
