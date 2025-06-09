@@ -120,13 +120,20 @@ func (a *App) LoadPresentation(pptxPath string) ([]string, error) {
 	// Clear image cache since we're loading new slides
 	a.ClearImageCache()
 
-	slides, err := ConvertPPTXToJPEG(pptxPath, "slides")
+	// Ensure we have absolute path for AI tools
+	absPath, err := filepath.Abs(pptxPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path: %v", err)
+	}
+
+	slides, err := ConvertPPTXToJPEG(absPath, "slides")
 	if err != nil {
 		return nil, fmt.Errorf("failed to load presentation: %v", err)
 	}
 
-	// Store the current presentation path for AI tools
-	a.currentPresentationPath = pptxPath
+	// Store the absolute current presentation path for AI tools
+	a.currentPresentationPath = absPath
+	fmt.Printf("Loaded presentation: %s\n", absPath)
 
 	return slides, nil
 }
@@ -217,4 +224,17 @@ func (a *App) GetSlideImageQuiet(slidePath string) (string, error) {
 
 	// Return simple status instead of the massive base64 string
 	return "BASE64_DATA_LOADED", nil
+}
+
+// GetCurrentPresentationName returns the name of currently loaded presentation
+func (a *App) GetCurrentPresentationName() string {
+	if a.currentPresentationPath == "" {
+		return ""
+	}
+	return filepath.Base(a.currentPresentationPath)
+}
+
+// HasPresentationLoaded returns whether a presentation is currently loaded
+func (a *App) HasPresentationLoaded() bool {
+	return a.currentPresentationPath != ""
 }

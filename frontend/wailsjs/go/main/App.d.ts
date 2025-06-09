@@ -5,6 +5,8 @@ export function CheckSlideExists(arg1:string):Promise<boolean>;
 
 export function ClearImageCache():Promise<void>;
 
+export function GetCurrentPresentationName():Promise<string>;
+
 export function GetSlideImageAsBase64(arg1:string):Promise<string>;
 
 export function GetSlideImagePath(arg1:string):Promise<string>;
@@ -14,6 +16,8 @@ export function GetSlideImageQuiet(arg1:string):Promise<string>;
 export function GetSlides():Promise<Array<string>>;
 
 export function Greet(arg1:string):Promise<string>;
+
+export function HasPresentationLoaded():Promise<boolean>;
 
 export function LoadPresentation(arg1:string):Promise<Array<string>>;
 

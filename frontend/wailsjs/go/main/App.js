@@ -10,6 +10,10 @@ export function ClearImageCache() {
   return window['go']['main']['App']['ClearImageCache']();
 }
 
+export function GetCurrentPresentationName() {
+  return window['go']['main']['App']['GetCurrentPresentationName']();
+}
+
 export function GetSlideImageAsBase64(arg1) {
   return window['go']['main']['App']['GetSlideImageAsBase64'](arg1);
 }
@@ -28,6 +32,10 @@ export function GetSlides() {
 
 export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
+}
+
+export function HasPresentationLoaded() {
+  return window['go']['main']['App']['HasPresentationLoaded']();
 }
 
 export function LoadPresentation(arg1) {

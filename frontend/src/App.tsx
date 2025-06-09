@@ -6,6 +6,8 @@ import {
   SendMessageToAI,
   GetSlideImageQuiet,
   GetSlideImageAsBase64,
+  GetCurrentPresentationName,
+  HasPresentationLoaded,
 } from "../wailsjs/go/main/App";
 import ChatPanel from "./components/ChatPanel";
 
@@ -15,10 +17,13 @@ function App() {
   const [chatOpen, setChatOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentSlideImage, setCurrentSlideImage] = useState<string>("");
+  const [presentationName, setPresentationName] = useState<string>("");
+  const [hasPresentationLoaded, setHasPresentationLoaded] = useState(false);
 
   useEffect(() => {
     // Load initial slides if they exist
     loadSlides();
+    updatePresentationState();
   }, []);
 
   useEffect(() => {
@@ -57,8 +62,27 @@ function App() {
       if (slideList.length > 0) {
         setCurrentSlideImage("");
       }
+      
+      // Update presentation state
+      updatePresentationState();
     } catch (error) {
       console.error("Failed to load slides:", error);
+    }
+  };
+
+  const updatePresentationState = async () => {
+    try {
+      const hasLoaded = await HasPresentationLoaded();
+      setHasPresentationLoaded(hasLoaded);
+      
+      if (hasLoaded) {
+        const name = await GetCurrentPresentationName();
+        setPresentationName(name);
+      } else {
+        setPresentationName("");
+      }
+    } catch (error) {
+      console.error("Failed to update presentation state:", error);
     }
   };
 
@@ -71,6 +95,9 @@ function App() {
       if (slideList.length > 0) {
         setCurrentSlide(0);
       }
+      
+      // Update presentation state after loading
+      await updatePresentationState();
     } catch (error) {
       console.error("Failed to load presentation:", error);
     } finally {
@@ -111,6 +138,11 @@ function App() {
           <div className="flex items-center space-x-3">
             <h1 className="text-xl font-bold text-gray-900">SlidePilot</h1>
             <span className="text-gray-500">AI-Powered PowerPoint Editor</span>
+            {presentationName && (
+              <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                {presentationName}
+              </span>
+            )}
           </div>
           <button
             onClick={() => setChatOpen(!chatOpen)}
@@ -151,26 +183,49 @@ function App() {
         {/* Toolbar */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center space-x-3">
-            <button
-              onClick={handleLoadPresentation}
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {!hasPresentationLoaded ? (
+              <button
+                onClick={handleLoadPresentation}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              {loading ? "Loading..." : "Open Presentation"}
-            </button>
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                {loading ? "Loading..." : "Open Presentation"}
+              </button>
+            ) : (
+              <button
+                onClick={handleLoadPresentation}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                {loading ? "Loading..." : "Load Different Presentation"}
+              </button>
+            )}
 
             <div className="flex items-center space-x-2 ml-6">
               <button className="p-2 hover:bg-gray-200 rounded-md transition-colors">
