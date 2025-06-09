@@ -67,66 +67,44 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 	}
 	a.conversation = append(a.conversation, message.ToParam())
 
-	// Process tool results
+	// Process tool results in a loop until no more tool calls
 	var response string
-	toolResults := []anthropic.ContentBlockParamUnion{}
+	currentMessage := message
 	
-	for _, content := range message.Content {
-		switch content.Type {
-		case "text":
-			response += content.Text
-		case "tool_use":
-			a.logToFile("TOOL_CALL", fmt.Sprintf("Tool: %s", content.Name), string(content.Input))
-			result := a.executeTool(content.ID, content.Name, content.Input)
-			toolResults = append(toolResults, result)
+	for {
+		toolResults := []anthropic.ContentBlockParamUnion{}
+		
+		// Process current message content
+		for _, content := range currentMessage.Content {
+			switch content.Type {
+			case "text":
+				response += content.Text
+			case "tool_use":
+				a.logToFile("TOOL_CALL", fmt.Sprintf("Tool: %s", content.Name), string(content.Input))
+				result := a.executeTool(content.ID, content.Name, content.Input)
+				toolResults = append(toolResults, result)
+			}
 		}
-	}
-
-	// If there were tool calls, run another inference to get AI's response
-	if len(toolResults) > 0 {
-		a.logToFile("DEBUG", fmt.Sprintf("Running follow-up inference with %d tool results", len(toolResults)), "")
+		
+		// If no tool calls were made, we're done
+		if len(toolResults) == 0 {
+			break
+		}
+		
+		// Send tool results and get next response
+		a.logToFile("DEBUG", fmt.Sprintf("Running inference with %d tool results", len(toolResults)), "")
 		a.conversation = append(a.conversation, anthropic.NewUserMessage(toolResults...))
 		
-		followUpMessage, err := a.runInference(context.Background(), a.conversation)
+		nextMessage, err := a.runInference(context.Background(), a.conversation)
 		if err != nil {
 			a.logToFile("ERROR", "Follow-up inference failed", err.Error())
 			return "", err
 		}
 		a.logToFile("DEBUG", "Follow-up inference completed successfully", "")
-		a.conversation = append(a.conversation, followUpMessage.ToParam())
+		a.conversation = append(a.conversation, nextMessage.ToParam())
 		
-		// Handle additional tool calls and text in follow-up
-		additionalToolResults := []anthropic.ContentBlockParamUnion{}
-		for _, content := range followUpMessage.Content {
-			if content.Type == "text" {
-				response += content.Text
-			} else if content.Type == "tool_use" {
-				a.logToFile("TOOL_CALL", fmt.Sprintf("Tool: %s", content.Name), string(content.Input))
-				result := a.executeTool(content.ID, content.Name, content.Input)
-				additionalToolResults = append(additionalToolResults, result)
-			}
-		}
-		
-		// If there were additional tool calls, run one more inference for final response
-		if len(additionalToolResults) > 0 {
-			a.logToFile("DEBUG", fmt.Sprintf("Running final inference with %d additional tool results", len(additionalToolResults)), "")
-			a.conversation = append(a.conversation, anthropic.NewUserMessage(additionalToolResults...))
-			
-			finalMessage, err := a.runInference(context.Background(), a.conversation)
-			if err != nil {
-				a.logToFile("ERROR", "Final inference failed", err.Error())
-				return "", err
-			}
-			a.logToFile("DEBUG", "Final inference completed successfully", "")
-			a.conversation = append(a.conversation, finalMessage.ToParam())
-			
-			// Extract final text response
-			for _, content := range finalMessage.Content {
-				if content.Type == "text" {
-					response += content.Text
-				}
-			}
-		}
+		// Set up for next iteration
+		currentMessage = nextMessage
 	}
 
 	// Log final response
