@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   GetSlides,
   LoadPresentation,
+  OpenPresentationDialog,
   SendMessageToAI,
   GetSlideImageQuiet,
   GetSlideImageAsBase64,
@@ -64,10 +65,12 @@ function App() {
   const handleLoadPresentation = async () => {
     setLoading(true);
     try {
-      // For now, load the sample presentation
-      const slideList = await LoadPresentation("original_ppt.pptx");
+      // Open file dialog to select presentation
+      const slideList = await OpenPresentationDialog();
       setSlides(slideList);
-      setCurrentSlide(0);
+      if (slideList.length > 0) {
+        setCurrentSlide(0);
+      }
     } catch (error) {
       console.error("Failed to load presentation:", error);
     } finally {

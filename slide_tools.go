@@ -22,15 +22,20 @@ type ListSlidesInput struct {
 
 var ListSlidesInputSchema = GenerateSchema[ListSlidesInput]()
 
-func ListSlides(input json.RawMessage) (string, error) {
+func ListSlides(app *App, input json.RawMessage) (string, error) {
 	listSlidesInput := ListSlidesInput{}
 	err := json.Unmarshal(input, &listSlidesInput)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse input: %v", err)
 	}
 
+	// Use current presentation path if not provided
 	if listSlidesInput.PresentationPath == "" {
-		return "", fmt.Errorf("presentation_path is required")
+		if app != nil && app.currentPresentationPath != "" {
+			listSlidesInput.PresentationPath = app.currentPresentationPath
+		} else {
+			return "", fmt.Errorf("no presentation loaded - please load a presentation first")
+		}
 	}
 
 	fmt.Printf("Listing slides in: %s\n", listSlidesInput.PresentationPath)
@@ -68,15 +73,20 @@ type ReadSlideInput struct {
 
 var ReadSlideInputSchema = GenerateSchema[ReadSlideInput]()
 
-func ReadSlide(input json.RawMessage) (string, error) {
+func ReadSlide(app *App, input json.RawMessage) (string, error) {
 	readSlideInput := ReadSlideInput{}
 	err := json.Unmarshal(input, &readSlideInput)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse input: %v", err)
 	}
 
+	// Use current presentation path if not provided
 	if readSlideInput.PresentationPath == "" {
-		return "", fmt.Errorf("presentation_path is required")
+		if app != nil && app.currentPresentationPath != "" {
+			readSlideInput.PresentationPath = app.currentPresentationPath
+		} else {
+			return "", fmt.Errorf("no presentation loaded - please load a presentation first")
+		}
 	}
 
 	if readSlideInput.SlideNumber < 1 {
@@ -128,16 +138,21 @@ OldText          string `json:"old_text,omitempty" jsonschema_description:"(Opti
 
 var EditSlideTextInputSchema = GenerateSchema[EditSlideTextInput]()
 
-func EditSlideText(input json.RawMessage) (string, error) {
+func EditSlideText(app *App, input json.RawMessage) (string, error) {
 editInput := EditSlideTextInput{}
 err := json.Unmarshal(input, &editInput)
 if err != nil {
 return "", fmt.Errorf("failed to parse input: %v", err)
 }
 
+// Use current presentation path if not provided
 if editInput.PresentationPath == "" {
-return "", fmt.Errorf("presentation_path is required")
-}
+ if app != nil && app.currentPresentationPath != "" {
+			editInput.PresentationPath = app.currentPresentationPath
+		} else {
+			return "", fmt.Errorf("no presentation loaded - please load a presentation first")
+		}
+	}
 
 if editInput.SlideNumber < 1 {
 return "", fmt.Errorf("slide_number must be 1 or greater")
@@ -211,16 +226,21 @@ OutputDir        string `json:"output_dir,omitempty" jsonschema_description:"Dir
 
 var ExportSlidesInputSchema = GenerateSchema[ExportSlidesInput]()
 
-func ExportSlides(input json.RawMessage) (string, error) {
+func ExportSlides(app *App, input json.RawMessage) (string, error) {
 exportInput := ExportSlidesInput{}
 err := json.Unmarshal(input, &exportInput)
 if err != nil {
 return "", fmt.Errorf("failed to parse input: %v", err)
 }
 
+// Use current presentation path if not provided
 if exportInput.PresentationPath == "" {
-return "", fmt.Errorf("presentation_path is required")
-}
+ if app != nil && app.currentPresentationPath != "" {
+			exportInput.PresentationPath = app.currentPresentationPath
+		} else {
+			return "", fmt.Errorf("no presentation loaded - please load a presentation first")
+		}
+	}
 
 // Set default output directory
 outputDir := exportInput.OutputDir
@@ -282,15 +302,20 @@ type AddSlideInput struct {
 
 var AddSlideInputSchema = GenerateSchema[AddSlideInput]()
 
-func AddSlide(input json.RawMessage) (string, error) {
+func AddSlide(app *App, input json.RawMessage) (string, error) {
 	addSlideInput := AddSlideInput{}
 	err := json.Unmarshal(input, &addSlideInput)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse input: %v", err)
 	}
 
+	// Use current presentation path if not provided
 	if addSlideInput.PresentationPath == "" {
-		return "", fmt.Errorf("presentation_path is required")
+		if app != nil && app.currentPresentationPath != "" {
+			addSlideInput.PresentationPath = app.currentPresentationPath
+		} else {
+			return "", fmt.Errorf("no presentation loaded - please load a presentation first")
+		}
 	}
 
 	// Set defaults
@@ -381,15 +406,20 @@ type DeleteSlideInput struct {
 
 var DeleteSlideInputSchema = GenerateSchema[DeleteSlideInput]()
 
-func DeleteSlide(input json.RawMessage) (string, error) {
+func DeleteSlide(app *App, input json.RawMessage) (string, error) {
 	deleteSlideInput := DeleteSlideInput{}
 	err := json.Unmarshal(input, &deleteSlideInput)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse input: %v", err)
 	}
 
+	// Use current presentation path if not provided
 	if deleteSlideInput.PresentationPath == "" {
-		return "", fmt.Errorf("presentation_path is required")
+		if app != nil && app.currentPresentationPath != "" {
+			deleteSlideInput.PresentationPath = app.currentPresentationPath
+		} else {
+			return "", fmt.Errorf("no presentation loaded - please load a presentation first")
+		}
 	}
 
 	if deleteSlideInput.SlideNumber < 1 {

@@ -8,21 +8,25 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
 type App struct {
-	ctx        context.Context
-	aiAgent    *AIAgent
-	imageCache map[string]string // Cache for base64 images
+	ctx                     context.Context
+	aiAgent                 *AIAgent
+	imageCache              map[string]string // Cache for base64 images
+	currentPresentationPath string            // Track currently loaded presentation
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{
-		aiAgent:    NewAIAgent(),
+	app := &App{
 		imageCache: make(map[string]string),
 	}
+	app.aiAgent = NewAIAgent(app)
+	return app
 }
 
 // startup is called when the app starts. The context is saved
@@ -88,6 +92,29 @@ func (a *App) GetSlides() ([]string, error) {
 	return slides, nil
 }
 
+// OpenPresentationDialog opens a file dialog to select a PowerPoint presentation
+func (a *App) OpenPresentationDialog() ([]string, error) {
+	selection, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select PowerPoint Presentation",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "PowerPoint Files (*.pptx)",
+				Pattern:     "*.pptx",
+			},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file dialog: %v", err)
+	}
+
+	if selection == "" {
+		// User cancelled
+		return []string{}, nil
+	}
+
+	return a.LoadPresentation(selection)
+}
+
 // LoadPresentation loads a PowerPoint file and exports slides to JPEG
 func (a *App) LoadPresentation(pptxPath string) ([]string, error) {
 	// Clear image cache since we're loading new slides
@@ -97,6 +124,9 @@ func (a *App) LoadPresentation(pptxPath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load presentation: %v", err)
 	}
+
+	// Store the current presentation path for AI tools
+	a.currentPresentationPath = pptxPath
 
 	return slides, nil
 }

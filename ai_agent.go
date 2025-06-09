@@ -13,16 +13,17 @@ type ToolDefinition struct {
 	Name        string                           `json:"name"`
 	Description string                           `json:"description"`
 	InputSchema anthropic.ToolInputSchemaParam   `json:"input_schema"`
-	Function    func(input json.RawMessage) (string, error)
+	Function    func(app *App, input json.RawMessage) (string, error)
 }
 
 type AIAgent struct {
 	client       *anthropic.Client
 	tools        []ToolDefinition
 	conversation []anthropic.MessageParam
+	app          *App // Reference to the main App
 }
 
-func NewAIAgent() *AIAgent {
+func NewAIAgent(app *App) *AIAgent {
 	client := anthropic.NewClient()
 	tools := []ToolDefinition{
 		ListSlidesDefinition, 
@@ -37,6 +38,7 @@ func NewAIAgent() *AIAgent {
 		client:       &client,
 		tools:        tools,
 		conversation: []anthropic.MessageParam{},
+		app:          app,
 	}
 }
 
@@ -122,7 +124,7 @@ func (a *AIAgent) executeTool(id, name string, input json.RawMessage) anthropic.
 	}
 
 	fmt.Printf("Executing tool: %s(%s)\n", name, input)
-	response, err := toolDef.Function(input)
+	response, err := toolDef.Function(a.app, input)
 	if err != nil {
 		return anthropic.NewToolResultBlock(id, err.Error(), true)
 	}

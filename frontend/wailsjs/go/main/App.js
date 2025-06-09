@@ -34,6 +34,10 @@ export function LoadPresentation(arg1) {
   return window['go']['main']['App']['LoadPresentation'](arg1);
 }
 
+export function OpenPresentationDialog() {
+  return window['go']['main']['App']['OpenPresentationDialog']();
+}
+
 export function SendMessageToAI(arg1) {
   return window['go']['main']['App']['SendMessageToAI'](arg1);
 }
