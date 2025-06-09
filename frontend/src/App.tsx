@@ -229,7 +229,7 @@ function App() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {slides.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center max-w-lg">
@@ -246,16 +246,16 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
-              <div className="max-w-4xl w-full bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex-1 flex items-center justify-center p-4 bg-gray-50 min-h-0">
+              <div className="max-w-4xl w-full h-full bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-center">
                 {currentSlideImage ? (
                   <img
                     src={currentSlideImage}
                     alt={`Slide ${currentSlide + 1}`}
-                    className="w-full h-auto max-h-[60vh] object-contain"
+                    className="max-w-full max-h-full object-contain"
                   />
                 ) : (
-                  <div className="w-full h-60 flex items-center justify-center text-gray-500">
+                  <div className="w-full h-32 flex items-center justify-center text-gray-500">
                     Loading slide...
                   </div>
                 )}
