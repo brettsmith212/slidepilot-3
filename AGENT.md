@@ -77,12 +77,45 @@ wails generate module # Regenerate bindings
 ## Environment Variables
 Set `ANTHROPIC_API_KEY` environment variable for AI functionality.
 
-## Known Issues
-- Requires LibreOffice headless service to be running
+## Recent Fixes & Improvements
+
+### AI Agent Conversation Loop (Fixed)
+- **Issue**: Claude would stop mid-conversation after tool calls
+- **Solution**: Added proper multi-round inference handling in `ai_agent.go`
+- **Result**: Claude now properly acknowledges completed edits
+
+### UI Slide Refresh (Fixed)
+- **Issue**: Slides didn't refresh in UI after AI edits
+- **Solution**: Auto-export slides after successful edits in `slide_tools.go`
+- **Result**: UI updates immediately after slide modifications
+
+### Python Script JSON Output (Fixed)
+- **Issue**: Python UNO scripts printed extra text that corrupted JSON parsing
+- **Solution**: Removed print statements from `scripts/uno_edit_slide.py`
+- **Result**: Clean JSON output that Go can parse properly
+
+### Empty Slides Array (Fixed)
+- **Issue**: Empty slides directory caused UI crashes with null array
+- **Solution**: Use `make([]string, 0)` instead of `var slides []string` in `app.go`
+- **Result**: Graceful handling of empty slide directories
+
+## Current Status
+- ✅ AI slide editing fully functional
+- ✅ UI updates automatically after edits
+- ✅ Proper conversation flow with Claude
+- ✅ Robust error handling and logging
+
+## Debugging
+- AI conversation logs available in `slides/ai_conversation.log`
+- Enhanced debug logging shows inference steps and tool results
+- Context injection ensures Claude knows current presentation path
+
+## Known Requirements
+- LibreOffice headless service must be running on port 8100
 - Python UNO bridge must be properly configured
-- File paths are relative to the working directory
+- `ANTHROPIC_API_KEY` environment variable required
 
 ## Testing
-- Sample presentation included: `original_ppt.pptx`
-- Slides are exported to `slides/` directory
-- Test AI commands like "Change the title of slide 1 to 'New Title'"
+- Load any `.pptx` file using "Open Presentation" button
+- Use AI chat to edit slides: "Change the title of slide 1 to 'Hello World'"
+- Slides auto-refresh in UI after successful edits
