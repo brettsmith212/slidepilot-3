@@ -6,6 +6,9 @@
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
+  "debug": {
+    "verboseLevel": "info"
+  },
   "author": {
     "name": "Brett Smith",
     "email": "brettsmith212@gmail.com"
