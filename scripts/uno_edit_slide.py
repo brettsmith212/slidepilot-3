@@ -138,7 +138,7 @@ def edit_slide_text(pptx_path, slide_number, target_type, target_value, new_text
         if changes_made:
             # Save the document
             doc.store()
-            print(f"SUCCESS: {change_description}")
+            # Don't print success message here - it interferes with JSON output
         
         # Close the document
         doc.close(True)

@@ -227,6 +227,25 @@ func EditSlideText(app *App, input json.RawMessage) (string, error) {
 		return "", fmt.Errorf("invalid JSON output from UNO script: %v", err)
 	}
 
+	// Parse result to check if edit was successful
+	var editResult map[string]interface{}
+	if err := json.Unmarshal(output, &editResult); err == nil {
+		if success, ok := editResult["success"].(bool); ok && success {
+			// Auto-export the edited slide to update UI
+			fmt.Printf("EditSlideText: Auto-exporting slide %d to update UI\n", editInput.SlideNumber)
+			exportInput := ExportSlidesInput{
+				PresentationPath: editInput.PresentationPath,
+				SlideNumbers:     []int{editInput.SlideNumber},
+				OutputDir:        "slides",
+			}
+			exportInputJSON, _ := json.Marshal(exportInput)
+			_, exportErr := ExportSlides(app, exportInputJSON)
+			if exportErr != nil {
+				fmt.Printf("Warning: Failed to auto-export slide after edit: %v\n", exportErr)
+			}
+		}
+	}
+
 	return string(output), nil
 }
 

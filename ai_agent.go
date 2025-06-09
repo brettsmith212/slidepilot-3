@@ -84,6 +84,7 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 
 	// If there were tool calls, run another inference to get AI's response
 	if len(toolResults) > 0 {
+		a.logToFile("DEBUG", fmt.Sprintf("Running follow-up inference with %d tool results", len(toolResults)), "")
 		a.conversation = append(a.conversation, anthropic.NewUserMessage(toolResults...))
 		
 		followUpMessage, err := a.runInference(context.Background(), a.conversation)
@@ -91,11 +92,39 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 			a.logToFile("ERROR", "Follow-up inference failed", err.Error())
 			return "", err
 		}
+		a.logToFile("DEBUG", "Follow-up inference completed successfully", "")
 		a.conversation = append(a.conversation, followUpMessage.ToParam())
 		
+		// Handle additional tool calls and text in follow-up
+		additionalToolResults := []anthropic.ContentBlockParamUnion{}
 		for _, content := range followUpMessage.Content {
 			if content.Type == "text" {
 				response += content.Text
+			} else if content.Type == "tool_use" {
+				a.logToFile("TOOL_CALL", fmt.Sprintf("Tool: %s", content.Name), string(content.Input))
+				result := a.executeTool(content.ID, content.Name, content.Input)
+				additionalToolResults = append(additionalToolResults, result)
+			}
+		}
+		
+		// If there were additional tool calls, run one more inference for final response
+		if len(additionalToolResults) > 0 {
+			a.logToFile("DEBUG", fmt.Sprintf("Running final inference with %d additional tool results", len(additionalToolResults)), "")
+			a.conversation = append(a.conversation, anthropic.NewUserMessage(additionalToolResults...))
+			
+			finalMessage, err := a.runInference(context.Background(), a.conversation)
+			if err != nil {
+				a.logToFile("ERROR", "Final inference failed", err.Error())
+				return "", err
+			}
+			a.logToFile("DEBUG", "Final inference completed successfully", "")
+			a.conversation = append(a.conversation, finalMessage.ToParam())
+			
+			// Extract final text response
+			for _, content := range finalMessage.Content {
+				if content.Type == "text" {
+					response += content.Text
+				}
 			}
 		}
 	}
