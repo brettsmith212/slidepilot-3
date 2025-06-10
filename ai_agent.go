@@ -89,7 +89,7 @@ func (a *AIAgent) SendMessage(ctx context.Context, userMessage string) error {
 			case "tool_use":
 				// Emit tool execution status as event
 				statusMsg := getToolDisplayName(content.Name)
-				a.emitMessage(fmt.Sprintf("*%s...*", statusMsg))
+				a.emitMessage(fmt.Sprintf("%s...", statusMsg))
 				
 				a.logToFile("TOOL_CALL", fmt.Sprintf("Tool: %s", content.Name), string(content.Input))
 				result := a.executeTool(content.ID, content.Name, content.Input)
