@@ -59,7 +59,9 @@ wails generate module # Regenerate bindings
 - Navigate between slides
 
 ### AI Integration
-- Chat interface for natural language slide editing
+- **Streaming real-time chat interface** for natural language slide editing
+- **Autonomous AI workflow** - Claude works through complex tasks independently
+- **Real-time tool status indicators** with emojis (📋 Listing slides..., ✏️ Editing slide text...)
 - Tool-based editing system with the following capabilities:
   - List slides
   - Read slide content
@@ -70,40 +72,35 @@ wails generate module # Regenerate bindings
 
 ### UI Features
 - Responsive slide viewer with thumbnails
-- Collapsible chat panel
-- Real-time slide updates after AI modifications
+- Collapsible chat panel with **streaming message bubbles**
+- **Real-time slide updates** after AI modifications via auto-export
 - Loading states and error handling
+- **Live progress visibility** - see Claude working step-by-step
 
 ## Environment Variables
 Set `ANTHROPIC_API_KEY` environment variable for AI functionality.
 
-## Recent Fixes & Improvements
+## Architecture
 
-### AI Agent Conversation Loop (Fixed)
-- **Issue**: Claude would stop mid-conversation after tool calls
-- **Solution**: Added proper multi-round inference handling in `ai_agent.go`
-- **Result**: Claude now properly acknowledges completed edits
+### Streaming Real-Time Chat System
+- **Backend**: AI agent emits Wails events (`"ai-message"`) for each message chunk and tool status
+- **Frontend**: Listens for events and creates separate chat bubbles in real-time
+- **Tool Status**: Live indicators show Claude's progress: "📋 Listing slides...", "👀 Reading slide content...", "✏️ Editing slide text..."
+- **Autonomous Operation**: Claude continues working until task completion without user intervention
 
-### UI Slide Refresh (Fixed)
-- **Issue**: Slides didn't refresh in UI after AI edits
-- **Solution**: Auto-export slides after successful edits in `slide_tools.go`
-- **Result**: UI updates immediately after slide modifications
-
-### Python Script JSON Output (Fixed)
-- **Issue**: Python UNO scripts printed extra text that corrupted JSON parsing
-- **Solution**: Removed print statements from `scripts/uno_edit_slide.py`
-- **Result**: Clean JSON output that Go can parse properly
-
-### Empty Slides Array (Fixed)
-- **Issue**: Empty slides directory caused UI crashes with null array
-- **Solution**: Use `make([]string, 0)` instead of `var slides []string` in `app.go`
-- **Result**: Graceful handling of empty slide directories
+### AI Agent Flow
+1. User sends message → Enhanced with current presentation context
+2. Claude processes and makes tool calls as needed
+3. Each text response and tool status emitted as separate events
+4. Loop continues until Claude provides final response with no more tool calls
+5. Slides auto-export after successful edits to refresh UI
 
 ## Current Status
-- ✅ AI slide editing fully functional
-- ✅ UI updates automatically after edits
-- ✅ Proper conversation flow with Claude
-- ✅ Robust error handling and logging
+- ✅ **Streaming real-time chat** with live tool status indicators
+- ✅ **Autonomous AI workflow** - Claude works through complex tasks independently  
+- ✅ **Real-time UI updates** - slides refresh automatically after edits
+- ✅ **Multi-round conversation** - Claude continues until task completion
+- ✅ **Robust error handling** and comprehensive logging
 
 ## Debugging
 - AI conversation logs available in `slides/ai_conversation.log`
@@ -118,4 +115,13 @@ Set `ANTHROPIC_API_KEY` environment variable for AI functionality.
 ## Testing
 - Load any `.pptx` file using "Open Presentation" button
 - Use AI chat to edit slides: "Change the title of slide 1 to 'Hello World'"
+- **Watch real-time streaming**: Claude will show live progress with tool status indicators
+- **Try complex tasks**: "Update both slides with interesting facts about AI" - see autonomous workflow
 - Slides auto-refresh in UI after successful edits
+
+## Key Implementation Details
+- **Event System**: Uses Wails `runtime.EventsEmit(ctx, "ai-message", message)` for real-time streaming
+- **Tool Status Format**: `"📋 Listing slides..."` (no markdown, just emoji + text + ellipsis)
+- **Context Injection**: Each user message enhanced with current presentation path
+- **Auto-export**: Successful slide edits trigger immediate JPEG export for UI refresh
+- **Autonomous Loop**: Continues until Claude responds with no tool calls

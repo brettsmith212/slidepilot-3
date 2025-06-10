@@ -14,9 +14,9 @@ import (
 )
 
 type ToolDefinition struct {
-	Name        string                           `json:"name"`
-	Description string                           `json:"description"`
-	InputSchema anthropic.ToolInputSchemaParam   `json:"input_schema"`
+	Name        string                         `json:"name"`
+	Description string                         `json:"description"`
+	InputSchema anthropic.ToolInputSchemaParam `json:"input_schema"`
 	Function    func(app *App, input json.RawMessage) (string, error)
 }
 
@@ -24,21 +24,21 @@ type AIAgent struct {
 	client       *anthropic.Client
 	tools        []ToolDefinition
 	conversation []anthropic.MessageParam
-	app          *App // Reference to the main App
+	app          *App            // Reference to the main App
 	ctx          context.Context // For emitting events
 }
 
 func NewAIAgent(app *App) *AIAgent {
 	client := anthropic.NewClient()
 	tools := []ToolDefinition{
-		ListSlidesDefinition, 
-		ReadSlideDefinition, 
-		EditSlideTextDefinition, 
-		ExportSlidesDefinition, 
-		AddSlideDefinition, 
+		ListSlidesDefinition,
+		ReadSlideDefinition,
+		EditSlideTextDefinition,
+		ExportSlidesDefinition,
+		AddSlideDefinition,
 		DeleteSlideDefinition,
 	}
-	
+
 	return &AIAgent{
 		client:       &client,
 		tools:        tools,
@@ -50,16 +50,16 @@ func NewAIAgent(app *App) *AIAgent {
 
 func (a *AIAgent) SendMessage(ctx context.Context, userMessage string) error {
 	a.ctx = ctx // Store context for event emission
-	
+
 	// Log user message
 	a.logToFile("USER", userMessage, "")
-	
+
 	// Enhance user message with current presentation context
 	enhancedMessage := userMessage
 	if a.app != nil && a.app.currentPresentationPath != "" {
 		enhancedMessage = fmt.Sprintf("Current presentation loaded: %s\n\nUser request: %s", a.app.currentPresentationPath, userMessage)
 	}
-	
+
 	// Add user message to conversation
 	userMsgParam := anthropic.NewUserMessage(anthropic.NewTextBlock(enhancedMessage))
 	a.conversation = append(a.conversation, userMsgParam)
@@ -74,10 +74,10 @@ func (a *AIAgent) SendMessage(ctx context.Context, userMessage string) error {
 
 	// Process tool results in a loop until no more tool calls
 	currentMessage := message
-	
+
 	for {
 		toolResults := []anthropic.ContentBlockParamUnion{}
-		
+
 		// Process current message content
 		for _, content := range currentMessage.Content {
 			switch content.Type {
@@ -89,23 +89,23 @@ func (a *AIAgent) SendMessage(ctx context.Context, userMessage string) error {
 			case "tool_use":
 				// Emit tool execution status as event
 				statusMsg := getToolDisplayName(content.Name)
-				a.emitMessage(fmt.Sprintf("%s...", statusMsg))
-				
+				a.emitMessage(statusMsg)
+
 				a.logToFile("TOOL_CALL", fmt.Sprintf("Tool: %s", content.Name), string(content.Input))
 				result := a.executeTool(content.ID, content.Name, content.Input)
 				toolResults = append(toolResults, result)
 			}
 		}
-		
+
 		// If no tool calls were made, we're done
 		if len(toolResults) == 0 {
 			break
 		}
-		
+
 		// Send tool results and get next response
 		a.logToFile("DEBUG", fmt.Sprintf("Running inference with %d tool results", len(toolResults)), "")
 		a.conversation = append(a.conversation, anthropic.NewUserMessage(toolResults...))
-		
+
 		nextMessage, err := a.runInference(context.Background(), a.conversation)
 		if err != nil {
 			a.logToFile("ERROR", "Follow-up inference failed", err.Error())
@@ -113,7 +113,7 @@ func (a *AIAgent) SendMessage(ctx context.Context, userMessage string) error {
 		}
 		a.logToFile("DEBUG", "Follow-up inference completed successfully", "")
 		a.conversation = append(a.conversation, nextMessage.ToParam())
-		
+
 		// Set up for next iteration
 		currentMessage = nextMessage
 	}
@@ -151,7 +151,7 @@ func getToolDisplayName(toolName string) string {
 func (a *AIAgent) logToFile(msgType, message, details string) {
 	// Create slides directory if it doesn't exist
 	os.MkdirAll("slides", 0755)
-	
+
 	// Open log file for appending
 	logPath := filepath.Join("slides", "ai_conversation.log")
 	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -160,7 +160,7 @@ func (a *AIAgent) logToFile(msgType, message, details string) {
 		return
 	}
 	defer file.Close()
-	
+
 	// Write log entry
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	logEntry := fmt.Sprintf("[%s] %s: %s\n", timestamp, msgType, message)
@@ -168,7 +168,7 @@ func (a *AIAgent) logToFile(msgType, message, details string) {
 		logEntry += fmt.Sprintf("Details: %s\n", details)
 	}
 	logEntry += "---\n"
-	
+
 	file.WriteString(logEntry)
 }
 
@@ -221,7 +221,7 @@ func (a *AIAgent) executeTool(id, name string, input json.RawMessage) anthropic.
 		a.logToFile("TOOL_ERROR", fmt.Sprintf("Tool %s failed", name), err.Error())
 		return anthropic.NewToolResultBlock(id, err.Error(), true)
 	}
-	
+
 	a.logToFile("TOOL_RESULT", fmt.Sprintf("Tool %s completed", name), response)
 	return anthropic.NewToolResultBlock(id, response, false)
 }
