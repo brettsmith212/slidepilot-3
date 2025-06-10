@@ -129,7 +129,8 @@ Target types:
 - "shape_index": Edit specific shape by index (0, 1, 2, ...)
 - "shape_type": Edit by type ("title", "content", "text_box")
 - "text_replace": Replace specific text (requires old_text)
-- "bullet_point": Edit specific bullet point by index`,
+- "bullet_point": Edit specific bullet point by index
+- "bullet_list": Format entire shape as bullet list with proper formatting`,
 	InputSchema: EditSlideTextInputSchema,
 	Function:    EditSlideText,
 }
@@ -137,7 +138,7 @@ Target types:
 type EditSlideTextInput struct {
 	PresentationPath string `json:"presentation_path" jsonschema_description:"Path to the PowerPoint (.pptx) file"`
 	SlideNumber      int    `json:"slide_number" jsonschema_description:"Slide number to edit (1-based indexing)"`
-	TargetType       string `json:"target_type" jsonschema_description:"How to target: 'shape_index', 'shape_type', 'bullet_point', or 'text_replace'"`
+	TargetType       string `json:"target_type" jsonschema_description:"How to target: 'shape_index', 'shape_type', 'bullet_point', 'bullet_list', or 'text_replace'"`
 	TargetValue      string `json:"target_value" jsonschema_description:"Shape index (0,1,2...), shape type ('title','content','text_box'), bullet index, or text to find"`
 	NewText          string `json:"new_text" jsonschema_description:"New text content to set"`
 	OldText          string `json:"old_text,omitempty" jsonschema_description:"(Optional) For text_replace mode, the exact text to replace"`

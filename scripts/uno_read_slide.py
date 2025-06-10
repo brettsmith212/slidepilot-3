@@ -3,64 +3,8 @@ import uno
 import sys
 import os
 import json
-import re
 from com.sun.star.connection import NoConnectException
-
-def parse_bullet_points(text):
-    """Parse bullet points from text content"""
-    if not text or not text.strip():
-        return []
-    
-    # Split by common bullet point patterns
-    lines = text.split('\n')
-    bullet_points = []
-    
-    for i, line in enumerate(lines):
-        line = line.strip()
-        if line:
-            # Remove common bullet markers
-            clean_text = re.sub(r'^[•·*-]\s*', '', line)
-            if clean_text:
-                bullet_points.append({
-                    "index": i,
-                    "text": clean_text
-                })
-    
-    return bullet_points
-
-def get_shape_type(shape):
-    """Determine the type of shape based on its properties and content"""
-    try:
-        # Check if it has text
-        if not hasattr(shape, 'getString'):
-            return "non_text"
-        
-        text = shape.getString().strip()
-        if not text:
-            return "empty_text"
-        
-        # Try to determine based on shape service name or type
-        if hasattr(shape, 'getShapeType'):
-            shape_type = shape.getShapeType()
-            if 'text' in shape_type.lower():
-                # Check position and content to guess if it's title, subtitle, or content
-                if len(text) < 100 and '\n' not in text:
-                    return "title"
-                elif '•' in text or '*' in text or '-' in text:
-                    return "content"
-                else:
-                    return "text_box"
-        
-        # Fallback logic based on content
-        if len(text) < 50 and '\n' not in text:
-            return "title"
-        elif '•' in text or '*' in text or text.count('\n') > 1:
-            return "content"
-        else:
-            return "text_box"
-            
-    except Exception:
-        return "unknown"
+from slide_analyzer import SlideAnalyzer, convert_shape_info_to_dict
 
 def read_slide(pptx_path, slide_number):
     """Read detailed content from a specific slide"""
@@ -106,40 +50,17 @@ def read_slide(pptx_path, slide_number):
             "shapes": []
         }
         
-        # Extract information from each shape
+        # Extract information from each shape using the shared analyzer
         for shape_index in range(slide.getCount()):
             shape = slide.getByIndex(shape_index)
             
-            shape_info = {
-                "shape_index": shape_index,
-                "shape_type": get_shape_type(shape),
-                "text": "",
-                "description": ""
-            }
+            # Use the shared analyzer for consistent shape analysis
+            shape_info = SlideAnalyzer.analyze_shape(shape, shape_index)
             
-            # Try to get text content
-            if hasattr(shape, 'getString'):
-                text = shape.getString().strip()
-                shape_info["text"] = text
-                
-                # Generate description
-                if text:
-                    if shape_info["shape_type"] == "title":
-                        shape_info["description"] = "Main slide title"
-                    elif shape_info["shape_type"] == "content":
-                        shape_info["description"] = "Content text box with bullet points"
-                        # Parse bullet points
-                        bullet_points = parse_bullet_points(text)
-                        if bullet_points:
-                            shape_info["bullet_points"] = bullet_points
-                    else:
-                        shape_info["description"] = f"Text box containing: {text[:50]}..."
-                else:
-                    shape_info["description"] = "Empty text shape"
-            else:
-                shape_info["description"] = "Non-text shape (image, chart, etc.)"
+            # Convert to dictionary format for JSON output
+            shape_dict = convert_shape_info_to_dict(shape_info)
             
-            slide_info["shapes"].append(shape_info)
+            slide_info["shapes"].append(shape_dict)
         
         # Close the document
         doc.close(True)

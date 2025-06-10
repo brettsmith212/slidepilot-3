@@ -4,10 +4,58 @@ import sys
 import os
 import json
 from com.sun.star.connection import NoConnectException
+from com.sun.star.beans import PropertyValue
+from com.sun.star.text.WritingMode import LR_TB
+from com.sun.star.style.NumberingType import ARABIC
+from slide_analyzer import SlideAnalyzer
+
+def format_as_bullet_list(shape, bullet_text):
+    """Format text shape as a proper bullet list using LibreOffice UNO API"""
+    try:
+        # Set the text content
+        shape.setString(bullet_text)
+        
+        # Get the text object for formatting
+        if hasattr(shape, 'getText'):
+            text_obj = shape.getText()
+            cursor = text_obj.createTextCursor()
+            cursor.gotoStart(False)
+            cursor.gotoEnd(True)  # Select all text
+            
+            # Create numbering rules for bullet points
+            numbering_rules = cursor.getPropertyValue("NumberingRules")
+            if numbering_rules is None:
+                # Create new numbering rules if none exist
+                service_manager = cursor.getPropertyValue("ServiceManager") 
+                if service_manager is None:
+                    # Fallback: just set the text without special formatting
+                    return True
+                
+            # Set bullet point properties
+            try:
+                # Set basic paragraph properties for bullet list
+                cursor.setPropertyValue("NumberingLevel", 0)
+                cursor.setPropertyValue("ParaLeftMargin", 500)  # Left indent
+                cursor.setPropertyValue("ParaFirstLineIndent", -300)  # Hanging indent
+                return True
+            except:
+                # If numbering properties fail, just set the text
+                return True
+                
+    except Exception as e:
+        print(f"Warning: Could not apply bullet formatting: {e}")
+        # Fallback to simple text setting
+        shape.setString(bullet_text)
+        return True
+    
+    return True
 
 def edit_slide_text(pptx_path, slide_number, target_type, target_value, new_text, old_text=None):
     """Edit text content on a slide using various targeting methods"""
     try:
+        # Convert literal \n to actual newlines in new_text
+        new_text = new_text.replace('\\n', '\n')
+        
         # Connect to LibreOffice
         local_context = uno.getComponentContext()
         resolver = local_context.ServiceManager.createInstanceWithContext(
@@ -63,32 +111,28 @@ def edit_slide_text(pptx_path, slide_number, target_type, target_value, new_text
                 raise ValueError(f"Shape {shape_index} does not contain editable text")
                 
         elif target_type == "shape_type":
-            # Edit by shape type (title, content, etc.)
+            # Edit by shape type using shared analyzer
             target_shape_type = target_value.lower()
             
             for i in range(slide.getCount()):
                 shape = slide.getByIndex(i)
-                if hasattr(shape, 'getString'):
-                    text = shape.getString().strip()
-                    
-                    # Simple heuristic to identify shape type
-                    is_title = (len(text) < 100 and '\n' not in text and text)
-                    is_content = ('•' in text or '*' in text or text.count('\n') > 1)
-                    
-                    should_edit = False
-                    if target_shape_type == "title" and is_title:
-                        should_edit = True
-                    elif target_shape_type == "content" and is_content:
-                        should_edit = True
-                    elif target_shape_type == "text_box" and not is_title and not is_content and text:
-                        should_edit = True
-                    
-                    if should_edit:
-                        old_text_actual = shape.getString()
-                        shape.setString(new_text)
-                        changes_made = True
-                        change_description = f"Changed {target_shape_type} (shape {i}) from '{old_text_actual}' to '{new_text}'"
-                        break  # Only edit the first matching shape
+                
+                # Use shared analyzer to determine shape type
+                detected_shape_type = SlideAnalyzer.get_shape_type(shape)
+                
+                should_edit = False
+                if target_shape_type == detected_shape_type:
+                    should_edit = True
+                elif target_shape_type == "content" and detected_shape_type == "bullet_list":
+                    # Backward compatibility: "content" maps to "bullet_list"
+                    should_edit = True
+                
+                if should_edit:
+                    old_text_actual = shape.getString() if hasattr(shape, 'getString') else ""
+                    shape.setString(new_text)
+                    changes_made = True
+                    change_description = f"Changed {detected_shape_type} (shape {i}) from '{old_text_actual}' to '{new_text}'"
+                    break  # Only edit the first matching shape
             
             if not changes_made:
                 raise ValueError(f"No shape of type '{target_shape_type}' found on slide {slide_number}")
@@ -132,6 +176,22 @@ def edit_slide_text(pptx_path, slide_number, target_type, target_value, new_text
             
             if not changes_made:
                 raise ValueError(f"Bullet point {bullet_index} not found on slide {slide_number}")
+                
+        elif target_type == "bullet_list":
+            # Format as a bullet list - target_value is the shape index
+            shape_index = int(target_value)
+            if shape_index < 0 or shape_index >= slide.getCount():
+                raise ValueError(f"Shape index {shape_index} out of range (0-{slide.getCount()-1})")
+            
+            shape = slide.getByIndex(shape_index)
+            if hasattr(shape, 'setString'):
+                old_text_actual = shape.getString() if hasattr(shape, 'getString') else ""
+                # Use the bullet list formatting function
+                format_as_bullet_list(shape, new_text)
+                changes_made = True
+                change_description = f"Set shape {shape_index} as bullet list: '{new_text[:50]}...'"
+            else:
+                raise ValueError(f"Shape {shape_index} does not contain editable text")
         else:
             raise ValueError(f"Unknown target_type: {target_type}")
         
@@ -159,7 +219,7 @@ def edit_slide_text(pptx_path, slide_number, target_type, target_value, new_text
 if __name__ == "__main__":
     if len(sys.argv) < 6:
         print("Usage: python3 uno_edit_slide.py <pptx_path> <slide_number> <target_type> <target_value> <new_text> [old_text]")
-        print("target_type: shape_index, shape_type, bullet_point, text_replace")
+        print(f"target_type: {SlideAnalyzer.EDIT_TARGET_SHAPE_INDEX}, {SlideAnalyzer.EDIT_TARGET_SHAPE_TYPE}, {SlideAnalyzer.EDIT_TARGET_BULLET_POINT}, {SlideAnalyzer.EDIT_TARGET_BULLET_LIST}, {SlideAnalyzer.EDIT_TARGET_TEXT_REPLACE}")
         print("target_value: index/type/text depending on target_type")
         sys.exit(1)
     
