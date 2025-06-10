@@ -12,8 +12,11 @@ from slide_analyzer import SlideAnalyzer
 def format_as_bullet_list(shape, bullet_text):
     """Format text shape as a proper bullet list using LibreOffice UNO API"""
     try:
-        # Set the text content
-        shape.setString(bullet_text)
+        # Clean the text: remove existing bullet characters since LibreOffice will add its own
+        cleaned_text = SlideAnalyzer.clean_text_for_bullet_formatting(bullet_text)
+        
+        # Set the cleaned text content
+        shape.setString(cleaned_text)
         
         # Get the text object for formatting
         if hasattr(shape, 'getText'):
@@ -44,8 +47,9 @@ def format_as_bullet_list(shape, bullet_text):
                 
     except Exception as e:
         print(f"Warning: Could not apply bullet formatting: {e}")
-        # Fallback to simple text setting
-        shape.setString(bullet_text)
+        # Fallback to simple text setting with cleaned text
+        cleaned_text = SlideAnalyzer.clean_text_for_bullet_formatting(bullet_text)
+        shape.setString(cleaned_text)
         return True
     
     return True

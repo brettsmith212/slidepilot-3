@@ -79,6 +79,28 @@ class SlideAnalyzer:
         return bullet_points
     
     @staticmethod
+    def clean_text_for_bullet_formatting(text: str) -> str:
+        """Clean text by removing bullet characters for LibreOffice bullet formatting.
+        
+        LibreOffice will add its own bullet characters, so we need to remove any
+        existing ones to avoid double bullets (•• instead of •).
+        """
+        if not text:
+            return text
+            
+        # Split into lines and clean each line
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            # Remove leading bullet characters and whitespace
+            cleaned_line = re.sub(r'^\s*[•·*-]+\s*', '', line)
+            # Keep the line even if it becomes empty (preserves line structure)
+            cleaned_lines.append(cleaned_line)
+        
+        return '\n'.join(cleaned_lines)
+    
+    @staticmethod
     def is_bullet_content(text: str) -> bool:
         """Determine if text contains bullet point content."""
         if not text:
@@ -161,7 +183,7 @@ class SlideAnalyzer:
             elif shape_type == SlideAnalyzer.SHAPE_TYPE_BULLET_LIST:
                 description = "Bullet list content"
                 bullet_points = SlideAnalyzer.parse_bullet_points(text)
-                edit_hint = f"Use target_type='{SlideAnalyzer.EDIT_TARGET_BULLET_LIST}' with target_value='{shape_index}' for proper bullet formatting"
+                edit_hint = f"Use target_type='{SlideAnalyzer.EDIT_TARGET_BULLET_LIST}' with target_value='{shape_index}' for proper bullet formatting. Provide text WITHOUT bullet characters - LibreOffice will add them automatically."
                 
             elif shape_type == SlideAnalyzer.SHAPE_TYPE_TEXT_BOX:
                 description = f"Text box containing: {text[:50]}..."

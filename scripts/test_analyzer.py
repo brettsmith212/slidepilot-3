@@ -54,9 +54,30 @@ def test_bullet_parsing():
     for bp in bullets:
         print(f"    [{bp.index}] {bp.text}")
 
+def test_text_cleaning():
+    """Test bullet text cleaning for LibreOffice formatting."""
+    print("\nTesting text cleaning for bullet formatting:")
+    
+    test_cases = [
+        "• First point\n• Second point\n• Third point",
+        "* Item one\n* Item two\n* Item three", 
+        "- Dash bullets\n- Are cleaned\n- Properly",
+        "•• Double bullets\n•• Should be cleaned",
+        "  • Indented bullets\n  • Should work",
+        "Normal text\nWithout bullets",
+        "",
+    ]
+    
+    for text in test_cases:
+        cleaned = SlideAnalyzer.clean_text_for_bullet_formatting(text)
+        print(f"  Input:   '{text}'")
+        print(f"  Cleaned: '{cleaned}'")
+        print()
+
 if __name__ == "__main__":
     print("=== Slide Analyzer Tests ===")
     test_bullet_detection()
     test_title_detection()
     test_bullet_parsing()
+    test_text_cleaning()
     print("\n=== Tests Complete ===")

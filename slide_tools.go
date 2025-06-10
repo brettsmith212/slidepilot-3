@@ -130,7 +130,11 @@ Target types:
 - "shape_type": Edit by type ("title", "content", "text_box")
 - "text_replace": Replace specific text (requires old_text)
 - "bullet_point": Edit specific bullet point by index
-- "bullet_list": Format entire shape as bullet list with proper formatting`,
+- "bullet_list": Format entire shape as bullet list with proper LibreOffice formatting
+  
+IMPORTANT for bullet_list: Provide text with each line representing a bullet point, 
+but WITHOUT bullet characters (•, *, -). LibreOffice will add proper bullets automatically.
+Example: "First point\nSecond point\nThird point" (not "• First point\n• Second point")`,
 	InputSchema: EditSlideTextInputSchema,
 	Function:    EditSlideText,
 }
