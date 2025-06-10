@@ -10,6 +10,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/invopop/jsonschema"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type ToolDefinition struct {
@@ -24,6 +25,7 @@ type AIAgent struct {
 	tools        []ToolDefinition
 	conversation []anthropic.MessageParam
 	app          *App // Reference to the main App
+	ctx          context.Context // For emitting events
 }
 
 func NewAIAgent(app *App) *AIAgent {
@@ -42,10 +44,13 @@ func NewAIAgent(app *App) *AIAgent {
 		tools:        tools,
 		conversation: []anthropic.MessageParam{},
 		app:          app,
+		ctx:          nil, // Will be set when SendMessage is called
 	}
 }
 
-func (a *AIAgent) SendMessage(userMessage string) (string, error) {
+func (a *AIAgent) SendMessage(ctx context.Context, userMessage string) error {
+	a.ctx = ctx // Store context for event emission
+	
 	// Log user message
 	a.logToFile("USER", userMessage, "")
 	
@@ -63,12 +68,11 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 	message, err := a.runInference(context.Background(), a.conversation)
 	if err != nil {
 		a.logToFile("ERROR", "AI inference failed", err.Error())
-		return "", err
+		return err
 	}
 	a.conversation = append(a.conversation, message.ToParam())
 
 	// Process tool results in a loop until no more tool calls
-	var response string
 	currentMessage := message
 	
 	for {
@@ -78,8 +82,15 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 		for _, content := range currentMessage.Content {
 			switch content.Type {
 			case "text":
-				response += content.Text
+				// Emit text content as event
+				if content.Text != "" {
+					a.emitMessage(content.Text)
+				}
 			case "tool_use":
+				// Emit tool execution status as event
+				statusMsg := getToolDisplayName(content.Name)
+				a.emitMessage(fmt.Sprintf("*%s...*", statusMsg))
+				
 				a.logToFile("TOOL_CALL", fmt.Sprintf("Tool: %s", content.Name), string(content.Input))
 				result := a.executeTool(content.ID, content.Name, content.Input)
 				toolResults = append(toolResults, result)
@@ -98,7 +109,7 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 		nextMessage, err := a.runInference(context.Background(), a.conversation)
 		if err != nil {
 			a.logToFile("ERROR", "Follow-up inference failed", err.Error())
-			return "", err
+			return err
 		}
 		a.logToFile("DEBUG", "Follow-up inference completed successfully", "")
 		a.conversation = append(a.conversation, nextMessage.ToParam())
@@ -107,10 +118,34 @@ func (a *AIAgent) SendMessage(userMessage string) (string, error) {
 		currentMessage = nextMessage
 	}
 
-	// Log final response
-	a.logToFile("ASSISTANT", response, "")
+	return nil
+}
 
-	return response, nil
+func (a *AIAgent) emitMessage(message string) {
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "ai-message", message)
+		// Also log for debugging
+		a.logToFile("ASSISTANT", message, "")
+	}
+}
+
+func getToolDisplayName(toolName string) string {
+	switch toolName {
+	case "list_slides":
+		return "📋 Listing slides"
+	case "read_slide":
+		return "👀 Reading slide content"
+	case "edit_slide_text":
+		return "✏️ Editing slide text"
+	case "export_slides":
+		return "📸 Exporting slides"
+	case "add_slide":
+		return "➕ Adding new slide"
+	case "delete_slide":
+		return "🗑️ Deleting slide"
+	default:
+		return fmt.Sprintf("🔧 Executing %s", toolName)
+	}
 }
 
 func (a *AIAgent) logToFile(msgType, message, details string) {

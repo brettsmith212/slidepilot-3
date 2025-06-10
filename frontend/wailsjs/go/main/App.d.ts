@@ -23,4 +23,4 @@ export function LoadPresentation(arg1:string):Promise<Array<string>>;
 
 export function OpenPresentationDialog():Promise<Array<string>>;
 
-export function SendMessageToAI(arg1:string):Promise<string>;
+export function SendMessageToAI(arg1:string):Promise<void>;

@@ -8,7 +8,7 @@ interface ChatMessage {
 }
 
 interface ChatPanelProps {
-    onSendMessage: (message: string) => Promise<string>;
+    onSendMessage: (message: string, onMessage: (message: string) => void) => Promise<void>;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage }) => {
@@ -49,20 +49,23 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage }) => {
         };
 
         setMessages(prev => [...prev, userMessage]);
+        const userMessageText = inputMessage.trim();
         setInputMessage('');
         setIsLoading(true);
 
         try {
-            const response = await onSendMessage(inputMessage.trim());
-            
-            const assistantMessage: ChatMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: response,
-                timestamp: new Date()
+            // Handle streaming messages
+            const onStreamMessage = (message: string) => {
+                const assistantMessage: ChatMessage = {
+                    id: (Date.now() + Math.random()).toString(),
+                    role: 'assistant',
+                    content: message,
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, assistantMessage]);
             };
 
-            setMessages(prev => [...prev, assistantMessage]);
+            await onSendMessage(userMessageText, onStreamMessage);
         } catch (error) {
             const errorMessage: ChatMessage = {
                 id: (Date.now() + 1).toString(),

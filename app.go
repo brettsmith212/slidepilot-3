@@ -49,11 +49,11 @@ func (a *App) Greet(name string) string {
 }
 
 // SendMessageToAI sends a message to the AI agent and returns the response
-func (a *App) SendMessageToAI(message string) (string, error) {
-	response, err := a.aiAgent.SendMessage(message)
+func (a *App) SendMessageToAI(message string) error {
+	err := a.aiAgent.SendMessage(a.ctx, message)
 	// Clear image cache after AI interaction since slides might have been modified
 	a.ClearImageCache()
-	return response, err
+	return err
 }
 
 // GetSlides returns a list of slide image files in the slides directory

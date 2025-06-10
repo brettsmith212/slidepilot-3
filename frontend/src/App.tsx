@@ -9,6 +9,7 @@ import {
   GetCurrentPresentationName,
   HasPresentationLoaded,
 } from "../wailsjs/go/main/App";
+import { EventsOn } from "../wailsjs/runtime/runtime";
 import ChatPanel from "./components/ChatPanel";
 
 function App() {
@@ -19,11 +20,17 @@ function App() {
   const [currentSlideImage, setCurrentSlideImage] = useState<string>("");
   const [presentationName, setPresentationName] = useState<string>("");
   const [hasPresentationLoaded, setHasPresentationLoaded] = useState(false);
+  const [streamingMessages, setStreamingMessages] = useState<string[]>([]);
 
   useEffect(() => {
     // Load initial slides if they exist
     loadSlides();
     updatePresentationState();
+    
+    // Set up event listener for streaming AI messages
+    EventsOn("ai-message", (message: string) => {
+      setStreamingMessages(prev => [...prev, message]);
+    });
   }, []);
 
   useEffect(() => {
@@ -105,12 +112,24 @@ function App() {
     }
   };
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, onMessage: (message: string) => void) => {
     try {
-      const response = await SendMessageToAI(message);
+      // Clear previous streaming messages
+      setStreamingMessages([]);
+      
+      // Set up temporary event listener for this conversation
+      const messageHandler = (streamMessage: string) => {
+        onMessage(streamMessage);
+      };
+      
+      // Add event listener
+      EventsOn("ai-message", messageHandler);
+      
+      // Send message to AI (now returns void, streams via events)
+      await SendMessageToAI(message);
+      
       // Reload slides after AI interaction in case they were modified
       await loadSlides();
-      return response;
     } catch (error) {
       console.error("Failed to send message to AI:", error);
       throw error;
